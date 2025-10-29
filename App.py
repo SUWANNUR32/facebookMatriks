@@ -3,6 +3,7 @@ import pandas as pd
 import numpy as np
 import joblib
 import os
+import matplotlib.pyplot as plt
 
 # ===========================
 # KONFIGURASI HALAMAN
@@ -27,20 +28,16 @@ Model ini menggunakan **Random Forest Regressor** yang telah dilatih pada datase
 # ===========================
 # LOAD MODEL DAN PREPROCESSOR
 # ===========================
-
 @st.cache_resource
 def load_models():
     try:
-        # cek apakah file benar-benar ada
         st.write("📂 Files di direktori saat ini:", os.listdir())
         if not os.path.exists("rf_model.joblib"):
             raise FileNotFoundError("File rf_model.joblib tidak ditemukan di direktori kerja.")
-
         rf = joblib.load("rf_model.joblib")
         encoders = joblib.load("encoders.joblib")
         scaler = joblib.load("scaler.joblib")
         return rf, encoders, scaler
-
     except Exception as e:
         st.error(f"❌ Gagal memuat model atau file pendukung: {e}")
         return None, None, None
@@ -48,7 +45,7 @@ def load_models():
 rf, encoders, scaler = load_models()
 
 if not rf or not encoders or not scaler:
-    st.stop()  # hentikan eksekusi jika model gagal dimuat
+    st.stop()
 
 # ===========================
 # FORM INPUT
@@ -75,7 +72,6 @@ with col2:
 # ===========================
 if st.button("🚀 Prediksi Total Interaksi"):
     try:
-        # Buat DataFrame baru
         data_baru = {
             'Page total likes': [139441],
             'Type': [type_input],
@@ -99,20 +95,13 @@ if st.button("🚀 Prediksi Total Interaksi"):
 
         new_df = pd.DataFrame(data_baru)
 
-        # Label Encoding
         for col, encoder in encoders.items():
             new_df[col] = encoder.transform(new_df[col].astype(str))
 
-        # Scaling
         new_df['Total Interactions'] = 0
-        cols_to_transform = [
-            'Lifetime Post Total Reach',
-            'Lifetime Post Total Impressions',
-            'Total Interactions'
-        ]
+        cols_to_transform = ['Lifetime Post Total Reach', 'Lifetime Post Total Impressions', 'Total Interactions']
         new_df[cols_to_transform] = scaler.transform(new_df[cols_to_transform])
 
-        # Reorder columns
         X_cols = [
             'Page total likes', 'Type', 'Category', 'Post Month', 'Post Weekday',
             'Post Hour', 'Paid', 'Lifetime Post Total Reach',
@@ -125,25 +114,48 @@ if st.button("🚀 Prediksi Total Interaksi"):
         ]
         new_df_processed = new_df[X_cols]
 
-        # Prediksi
         pred_scaled = rf.predict(new_df_processed)
         pred_array = np.array([[0, 0, pred_scaled[0]]])
         pred_asli = scaler.inverse_transform(pred_array)[0, 2]
 
         # ===========================
-        # HASIL PREDIKSI
+        # HASIL PREDIKSI & INSIGHT
         # ===========================
         st.success(f"🎯 Prediksi Total Interaksi: **{int(round(pred_asli))}**")
         st.balloons()
+
+        # METRIK CEPAT
+        colm1, colm2, colm3 = st.columns(3)
+        colm1.metric("Reach", f"{int(lifetime_reach):,}")
+        colm2.metric("Impressions", f"{int(lifetime_impressions):,}")
+        colm3.metric("Jam Posting", f"{post_hour}:00")
 
         st.markdown("---")
         st.markdown("### 🔍 Rangkuman Data Input")
         st.dataframe(new_df)
 
-        st.markdown("### 📊 Interpretasi Hasil")
-        st.info("""
-        Semakin tinggi **Reach** dan **Impressions**, biasanya meningkatkan interaksi.
-        Waktu posting (jam & hari) juga berpengaruh besar pada engagement.
+        # ===========================
+        # VISUALISASI GRAFIK
+        # ===========================
+        st.markdown("### 📊 Visualisasi Prediksi dan Faktor Utama")
+
+        data_vis = pd.DataFrame({
+            'Faktor': ['Reach', 'Impressions', 'Likes by Fans'],
+            'Nilai': [lifetime_reach, lifetime_impressions, lifetime_likes]
+        })
+
+        fig, ax = plt.subplots(figsize=(6, 4))
+        ax.barh(data_vis['Faktor'], data_vis['Nilai'], color=['#1f77b4', '#ff7f0e', '#2ca02c'])
+        ax.set_xlabel('Nilai')
+        ax.set_title('Perbandingan Faktor Utama')
+        st.pyplot(fig)
+
+        st.markdown("### 📈 Interpretasi")
+        st.info(f"""
+        📌 **Prediksi interaksi:** sekitar **{int(round(pred_asli))}** total aksi pengguna.  
+        🔹 Postingan bertipe **{type_input}** dan kategori **{category}** cenderung memberi hasil yang berbeda tergantung **jam posting** ({post_hour}:00).  
+        🔹 Semakin tinggi **Reach** dan **Impressions**, potensi interaksi juga meningkat.  
+        🔹 Pastikan melakukan **boosting (Paid Ads)** untuk meningkatkan jangkauan postingan.
         """)
 
     except Exception as e:
@@ -156,5 +168,5 @@ st.markdown("""
 ---
 👨‍💻 **Dibuat oleh:** Anda  
 📦 **Model:** Random Forest Regressor  
-💬 Gunakan aplikasi ini untuk membantu menganalisis performa postingan Facebook secara cepat.
+💬 Aplikasi ini membantu Anda memahami faktor-faktor yang memengaruhi interaksi postingan Facebook.
 """)
