@@ -166,7 +166,7 @@ if st.button("🚀 Prediksi Total Interaksi"):
 # ===========================
 st.markdown("""
 ---
-👨‍💻 **Dibuat oleh:** Anda  
+👨‍💻 **Dibuat oleh:** SUWAN GANTENK  
 📦 **Model:** Random Forest Regressor  
 💬 Aplikasi ini membantu Anda memahami faktor-faktor yang memengaruhi interaksi postingan Facebook.
 """)
