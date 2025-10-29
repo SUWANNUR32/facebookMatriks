@@ -27,13 +27,20 @@ Model ini menggunakan **Random Forest Regressor** yang telah dilatih pada datase
 # ===========================
 # LOAD MODEL DAN PREPROCESSOR
 # ===========================
+
 @st.cache_resource
 def load_models():
     try:
+        # cek apakah file benar-benar ada
+        st.write("📂 Files di direktori saat ini:", os.listdir())
+        if not os.path.exists("rf_model.joblib"):
+            raise FileNotFoundError("File rf_model.joblib tidak ditemukan di direktori kerja.")
+
         rf = joblib.load("rf_model.joblib")
         encoders = joblib.load("encoders.joblib")
         scaler = joblib.load("scaler.joblib")
         return rf, encoders, scaler
+
     except Exception as e:
         st.error(f"❌ Gagal memuat model atau file pendukung: {e}")
         return None, None, None
