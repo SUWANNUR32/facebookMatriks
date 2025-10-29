@@ -6,7 +6,7 @@ import joblib
 # ===========================
 # LOAD MODEL DAN PREPROCESSOR
 # ===========================
-rf = joblib.load("rf_model.joblib")
+rf = joblib.load("rf_model (1).joblib")
 encoders = joblib.load("encoders.joblib")
 scaler = joblib.load("scaler.joblib")
 
